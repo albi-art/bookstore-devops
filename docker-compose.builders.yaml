@@ -1,0 +1,39 @@
+name: bookstore
+services:
+
+  # ============================================
+  # Java Билдер (Тёплая JVM и кэш Maven)
+  # ============================================
+  bookstore-java-builder:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: bookstore-java-builder
+    environment:
+      DOCKER_HOST: tcp://172.17.0.1:2375
+      DOCKER_API_VERSION: "1.44"
+    volumes:
+      - maven-repo:/root/.m2
+    working_dir: /workspace
+    command: tail -f /dev/null
+    networks:
+      - bookstore-devops
+
+  # ============================================
+  # Frontend Билдер (Тёплые node_modules)
+  # ============================================
+  bookstore-frontend-builder:
+    image: node:22-alpine
+    container_name: bookstore-frontend-builder
+    working_dir: /app
+    volumes:
+      - frontend-node-modules:/app/node_modules
+    command: tail -f /dev/null
+    networks:
+      - bookstore-devops
+
+volumes:
+  maven-repo:
+  frontend-node-modules:
+
+networks:
+  bookstore-devops:
+    name: bookstore-devops

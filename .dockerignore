@@ -1,0 +1,20 @@
+# Секреты и локальные конфиги
+.env
+.env*.local
+.env.example
+
+# CI/CD инфраструктура и скрипты
+.git/
+.github/
+.gitignore
+.dockerignore
+run.sh
+
+# IDE и ОС
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Документация
+README.md

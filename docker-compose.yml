@@ -2,6 +2,36 @@ name: bookstore-devops
 
 services:
   # ============================================
+  # Docker-in-Docker (DinD)
+  # ============================================
+  dind:
+    image: docker:27-dind
+    container_name: dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - ./docker-compose.builders.yaml:/builders.yaml
+      - dind-data:/var/lib/docker
+    entrypoint: [ "sh", "-c" ]
+    command:
+      - |
+        dockerd-entrypoint.sh --host=tcp://0.0.0.0:2375 &
+        while ! docker info >/dev/null 2>&1; do sleep 1; done
+        echo "Docker is ready! Launching builders..."
+        docker compose -f /builders.yaml up -d
+        wait
+    networks:
+      - bookstore-devops
+    healthcheck:
+      # Проверяем отзывчивость самого демона Docker
+      test: [ "CMD-SHELL", "docker info >/dev/null 2>&1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ============================================
   # Woodpecker CI (Server & Agent)
   # ============================================
   woodpecker-server:
@@ -19,7 +49,7 @@ services:
     volumes:
       - woodpecker-data:/var/lib/woodpecker
     networks:
-      - devops
+      - bookstore-devops
 
   woodpecker-agent:
     image: woodpeckerci/woodpecker-agent:v3
@@ -29,18 +59,24 @@ services:
       - WOODPECKER_SERVER=woodpecker-server:9000
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:-bookstore-devops-secret-key-12345}
       - WOODPECKER_MAX_WORKERS=2
-      - DOCKER_HOST=/var/run/docker.sock
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - DOCKER_HOST=tcp://dind:2375
+      - WOODPECKER_TRUST_PLUGINS=true
+      - WOODPECKER_TRUST_VOLUMES=true
+      - WOODPECKER_TRUST_PIPELINE=true
+
     depends_on:
+      dind:
+        condition: service_healthy
       woodpecker-server:
         condition: service_started
     networks:
-      - devops
+      - bookstore-devops
 
 volumes:
   woodpecker-data:
+  dind-data:
 
 networks:
-  devops:
+  bookstore-devops:
+    name: bookstore-devops
     driver: bridge

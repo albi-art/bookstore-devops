@@ -2,11 +2,10 @@
 set -e
 cd "$(dirname "$0")"
 
-echo "🛠️ Starting Bookstore DevOps & Woodpecker CI Server..."
-docker compose up -d
+docker compose -f docker-compose.yml up -d --no-recreate
 
 echo "=========================================================="
-echo "🚀 Woodpecker CI Server Started Successfully!"
+echo "🚀 Woodpecker CI Server & Builders Started Successfully!"
 echo "=========================================================="
 echo "🛠️  Woodpecker CI Server: http://localhost:8000"
 echo "=========================================================="
